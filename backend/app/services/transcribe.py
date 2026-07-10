@@ -33,17 +33,18 @@ def _get_whisper_model():
         settings = get_settings()
         cpu_threads = settings.whisper_cpu_threads
         if cpu_threads <= 0:
-            cpu_threads = min(16, os.cpu_count() or 4)
+            cpu_threads = min(2, os.cpu_count() or 2)
         _model = WhisperModel(
             settings.whisper_model,
             device=settings.whisper_device,
             compute_type=settings.whisper_compute_type,
             cpu_threads=cpu_threads,
+            num_workers=1,
         )
         return _model
 
 
-def _build_initial_prompt(glossary: list[str] | None, max_terms: int = 60) -> str:
+def _build_initial_prompt(glossary: list[str] | None, max_terms: int = 40) -> str:
     """PDF에서 뽑은 용어를 Whisper initial_prompt로 넣어 도메인 용어 인식률을 높인다.
 
     강의 도메인 용어(후두, TSH, 21-hydroxylase 등)를 미리 알려주면 발음이
@@ -77,10 +78,11 @@ def transcribe_audio(
         beam_size=beam_size,
         vad_filter=True,
         initial_prompt=initial_prompt,
-        condition_on_previous_text=True,
+        condition_on_previous_text=False,
         no_speech_threshold=0.6,
         compression_ratio_threshold=2.4,
-        temperature=[0.0, 0.2, 0.4],
+        temperature=0.0,
+        word_timestamps=False,
     )
 
     duration = float(getattr(info, "duration", 0) or 0)

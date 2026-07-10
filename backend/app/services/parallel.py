@@ -9,9 +9,9 @@ from typing import Any
 
 def _default_workers() -> int:
     try:
-        return max(2, int(os.getenv("OPENAI_MAX_CONCURRENCY", "8")))
+        return max(1, int(os.getenv("OPENAI_MAX_CONCURRENCY", "2")))
     except ValueError:
-        return 8
+        return 2
 
 
 def parallel_map(

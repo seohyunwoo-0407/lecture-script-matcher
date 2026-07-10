@@ -16,13 +16,14 @@ class Settings(BaseSettings):
     openai_text_model: str = ""
     openai_vision_model: str = ""
 
-    whisper_model: str = "small"
+    # Railway 등 저메모리 환경 기본값. 로컬에서 품질 우선이면 small + beam 5
+    whisper_model: str = "base"
     whisper_device: str = "cpu"
     whisper_compute_type: str = "int8"
-    # CPU 전사 튜닝. beam_size를 1로 낮추면 정확도 손실은 작고 속도는 크게 오른다.
-    # cpu_threads=0 이면 코어 수에 맞춰 자동(최대 16)으로 설정한다.
-    whisper_beam_size: int = 5
-    whisper_cpu_threads: int = 0
+    whisper_beam_size: int = 1
+    whisper_cpu_threads: int = 2
+    # 1이면 Whisper와 vision caption을 동시에 돌리지 않음 (피크 RAM 감소)
+    low_memory: bool = True
 
     job_storage_dir: str = "./storage/jobs"
     max_audio_size_mb: int = 500

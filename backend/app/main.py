@@ -115,16 +115,19 @@ def _run_pipeline(job_id: str) -> None:
 
         glossary = build_glossary(pages)
 
-        # vision caption은 전사문과 무관하므로 전사와 "동시에" 백그라운드로 돌린다.
-        # (전사가 끝날 때쯤 caption도 함께 끝나 대기 시간을 겹쳐서 줄인다.)
+        settings = get_settings()
         caption_warnings: list[str] = []
+        caption_thread = None
 
-        def _caption_worker() -> None:
-            _, cw = caption_pages(pages)
-            caption_warnings.extend(cw)
+        # 저메모리: Whisper와 caption 동시 실행 금지 (Railway OOM 방지)
+        if not settings.low_memory:
 
-        caption_thread = threading.Thread(target=_caption_worker, daemon=True)
-        caption_thread.start()
+            def _caption_worker() -> None:
+                _, cw = caption_pages(pages)
+                caption_warnings.extend(cw)
+
+            caption_thread = threading.Thread(target=_caption_worker, daemon=True)
+            caption_thread.start()
 
         _set_progress(
             job_id,
@@ -190,14 +193,19 @@ def _run_pipeline(job_id: str) -> None:
         )
 
         # 전사와 병렬로 돌던 vision caption이 끝나길 기다린다 (보통 이미 완료됨).
+        # low_memory면 여기서 순차 실행한다.
         _set_progress(
             job_id,
-            message="슬라이드 시각 분석 정리 중",
+            message="슬라이드 시각 분석 중",
             phase="matching",
             matching=20,
             overall=55,
         )
-        caption_thread.join()
+        if caption_thread is not None:
+            caption_thread.join()
+        else:
+            _, cw = caption_pages(pages)
+            caption_warnings.extend(cw)
         warnings.extend(caption_warnings)
         save_json(job_id, "pages_captioned.json", pages)
 
