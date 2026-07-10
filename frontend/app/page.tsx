@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import UploadPanel from "@/components/UploadPanel";
 import OptionPanel from "@/components/OptionPanel";
 import ProgressBar from "@/components/ProgressBar";
@@ -19,6 +20,7 @@ export default function HomePage() {
   const [customPrompt, setCustomPrompt] = useState("");
   const [themeId, setThemeId] = useState<ThemeId>("classic");
   const [textSize, setTextSize] = useState<TextSizeId>("base");
+  const [optionsOpen, setOptionsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
@@ -78,28 +80,38 @@ export default function HomePage() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
-      <div className="max-w-4xl mx-auto px-6 py-16">
-        <header className="text-center mb-12">
-          <div className="inline-block px-3 py-1 bg-brand-100 text-brand-700 text-xs font-semibold rounded-full mb-4">
-            1Q / Lecture Script Matcher
-          </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-3">
+    <main className="min-h-screen bg-[#f4f4f0]">
+      <header className="border-b border-black/10">
+        <div className="max-w-5xl mx-auto px-6 py-5 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+          <Link href="/" className="font-display text-3xl tracking-tight text-slate-900 leading-none">
+            <span className="font-bold">1</span>
+            <span className="font-normal">Q</span>
+          </Link>
+          <p className="text-center text-sm md:text-base text-brand-600/90 whitespace-nowrap">
             한 번의 클릭으로 완성되는 필기
-          </h1>
-          <p className="text-slate-500 text-lg">
-            AI가 알아서 정리해주는 강의록 위의 스크립트
           </p>
-          <a
-            href="/result/demo"
-            className="inline-block mt-4 text-sm text-brand-600 hover:underline"
-          >
-            데모 결과 미리보기 →
-          </a>
-        </header>
+          <nav className="justify-self-end text-sm text-slate-600 flex items-center gap-2">
+            <a href="#help" className="hover:text-slate-900 transition-colors">
+              help
+            </a>
+            <span className="text-slate-300">|</span>
+            <a href="#how-to-use" className="hover:text-slate-900 transition-colors">
+              how to use
+            </a>
+            <Link
+              href="/result/demo"
+              className="ml-2 hidden sm:inline-flex items-center px-3 py-1.5 rounded-md bg-brand-600 text-white text-xs font-medium
+                border border-black shadow-[0_2px_6px_rgba(111,134,166,0.4)] hover:bg-brand-700 transition-colors"
+            >
+              demo
+            </Link>
+          </nav>
+        </div>
+      </header>
 
+      <div className="max-w-4xl mx-auto px-6 py-14 md:py-20">
         {processing ? (
-          <div className="py-20">
+          <div className="py-16">
             <ProgressBar
               message={progressMessage}
               transcribeProgress={transcribeProgress}
@@ -116,6 +128,8 @@ export default function HomePage() {
             onSubmit={handleSubmit}
             loading={loading}
             error={error}
+            optionsOpen={optionsOpen}
+            onToggleOptions={() => setOptionsOpen((v) => !v)}
           >
             <OptionPanel
               readabilityMode={readabilityMode}
@@ -135,6 +149,21 @@ export default function HomePage() {
             />
           </UploadPanel>
         )}
+
+        <section id="how-to-use" className="mt-20 pt-8 border-t border-black/5 text-sm text-slate-500 space-y-2">
+          <h2 className="text-slate-700 font-medium">how to use</h2>
+          <ol className="list-decimal list-inside space-y-1">
+            <li>Upload record로 강의 음성을 올립니다.</li>
+            <li>Upload lecture로 PDF 강의록을 올립니다.</li>
+            <li>필요하면 customizing에서 노트 모드·테마를 고릅니다.</li>
+            <li>Done을 누르면 AI가 필기를 완성합니다.</li>
+          </ol>
+        </section>
+
+        <section id="help" className="mt-8 text-sm text-slate-500 space-y-1">
+          <h2 className="text-slate-700 font-medium">help</h2>
+          <p>지원 음성: mp3, m4a, wav, mp4, webm · 강의록: PDF</p>
+        </section>
       </div>
     </main>
   );

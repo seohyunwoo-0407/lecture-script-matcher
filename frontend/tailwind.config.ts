@@ -7,6 +7,10 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        display: ["var(--font-display)", "Georgia", "serif"],
+        sans: ["var(--font-sans)", "Apple SD Gothic Neo", "Noto Sans KR", "sans-serif"],
+      },
       colors: {
         brand: {
           50: "#f3f5f8",

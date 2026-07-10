@@ -69,9 +69,9 @@ export default function OptionPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultPrompts]);
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
-      <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
-        옵션
+    <div className="bg-white rounded-2xl border border-black/[0.06] p-6 shadow-sm space-y-5">
+      <h3 className="text-sm font-semibold text-slate-700">
+        Options
       </h3>
 
       <label className="flex items-center justify-between cursor-pointer">
