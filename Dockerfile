@@ -1,3 +1,4 @@
+# Railway: repo 루트에서 빌드 (Root Directory 미설정 시에도 동작)
 FROM python:3.11-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -6,10 +7,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app ./app
+COPY backend/app ./app
 
 RUN mkdir -p /app/storage/jobs
 
