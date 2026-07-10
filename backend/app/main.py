@@ -596,6 +596,16 @@ def download_pdf(job_id: str, note_bg: str | None = None, note_text: str | None 
     )
 
 
+@app.get("/")
+def root():
+    return {
+        "service": "Lecture Script Matcher API",
+        "status": "ok",
+        "health": "/health",
+        "docs": "/docs",
+    }
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
