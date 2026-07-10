@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+python-multipart
+pydantic
+pydantic-settings
+faster-whisper
+pymupdf
+openai
+numpy
+rank-bm25
+scikit-learn
