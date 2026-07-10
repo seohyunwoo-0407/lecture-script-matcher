@@ -34,7 +34,7 @@ git push -u origin main
 | `OPENAI_API_KEY` | `sk-...` |
 | `OPENAI_TEXT_MODEL` | `gpt-4o-mini` |
 | `OPENAI_VISION_MODEL` | `gpt-4o-mini` |
-| `WHISPER_MODEL` | `small` |
+| `WHISPER_MODEL` | `base` |
 | `WHISPER_BEAM_SIZE` | `3` (발표용 속도 우선) |
 
 4. 배포 완료 후 **Public URL** 복사 (예: `https://lecture-matcher-production.up.railway.app`)

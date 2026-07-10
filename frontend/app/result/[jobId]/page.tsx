@@ -174,6 +174,16 @@ export default function ResultPage({ params }: { params: { jobId: string } }) {
         <div className="flex gap-2 items-center flex-wrap justify-end">
           {jobId !== "demo" && jobId !== "sample" && (
             <>
+              {result.summary_mode && result.note_mode === "full_note" && (
+                <a
+                  href={`${getDownloadUrl(jobId, "pdf")}?note_bg=${encodeURIComponent(
+                    noteBg
+                  )}&note_text=${encodeURIComponent(noteText)}`}
+                  className="px-4 py-2 text-sm bg-brand-600 text-white rounded-lg hover:bg-brand-700 font-medium border border-black"
+                >
+                  PDF (전체 정리본)
+                </a>
+              )}
               {result.summary_mode && result.note_mode !== "full_note" && (
                 <div className="flex items-center gap-2">
                   <label className="flex items-center gap-1.5 text-xs text-slate-500">
@@ -210,7 +220,7 @@ export default function ResultPage({ params }: { params: { jobId: string } }) {
                     href={`${getDownloadUrl(jobId, "pdf")}?note_bg=${encodeURIComponent(
                       noteBg
                     )}&note_text=${encodeURIComponent(noteText)}`}
-                    className="px-4 py-2 text-sm bg-brand-600 text-white rounded-lg hover:bg-brand-700 font-medium"
+                    className="px-4 py-2 text-sm bg-brand-600 text-white rounded-lg hover:bg-brand-700 font-medium border border-black"
                   >
                     PDF (핵심정리 포함)
                   </a>

@@ -37,7 +37,7 @@ function LectureIcon({ className }: { className?: string }) {
       aria-hidden
     >
       <rect x="18" y="6" width="44" height="28" rx="2" fill="currentColor" opacity="0.85" />
-      <rect x="22" y="10" width="36" height="20" rx="1" fill="#f4f4f0" />
+      <rect x="22" y="10" width="36" height="20" rx="1" fill="#eef2e8" />
       <circle cx="40" cy="40" r="5" fill="currentColor" />
       <path
         d="M32 52c0-4.4 3.6-8 8-8s8 3.6 8 8"
@@ -57,17 +57,22 @@ interface UploadCardProps {
   file: File | null;
   onFileSelect: (file: File | null) => void;
   icon: ReactNode;
+  tone: "record" | "lecture";
 }
 
-function UploadCard({ title, accept, file, onFileSelect, icon }: UploadCardProps) {
+function UploadCard({ title, accept, file, onFileSelect, icon, tone }: UploadCardProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const toneClass =
+    tone === "lecture"
+      ? "bg-[#c9d4c4] hover:bg-[#becbb8]"
+      : "bg-[#c5d0de] hover:bg-[#b8c5d6]";
 
   return (
     <div
-      className={`flex-1 min-h-[280px] rounded-[28px] bg-white px-8 py-10 flex flex-col items-center justify-between
-        shadow-[inset_0_2px_10px_rgba(0,0,0,0.08),inset_0_-1px_2px_rgba(255,255,255,0.9)]
-        border border-black/[0.04] transition-all
-        ${file ? "ring-2 ring-brand-600/40" : ""}`}
+      className={`flex-1 min-h-[280px] rounded-[28px] px-8 py-10 flex flex-col items-center justify-between
+        border-2 border-black/25 shadow-[0_8px_24px_rgba(40,55,80,0.12)] transition-all
+        ${toneClass}
+        ${file ? "ring-2 ring-brand-700 ring-offset-2 ring-offset-[#e4eaf1]" : ""}`}
     >
       <input
         ref={inputRef}
@@ -76,7 +81,7 @@ function UploadCard({ title, accept, file, onFileSelect, icon }: UploadCardProps
         className="hidden"
         onChange={(e) => onFileSelect(e.target.files?.[0] ?? null)}
       />
-      <div className="flex-1 flex items-center justify-center text-[#3d5a45] w-28 h-28">
+      <div className="flex-1 flex items-center justify-center text-[#2f4538] w-28 h-28 drop-shadow-sm">
         {icon}
       </div>
       <div className="w-full flex flex-col items-center gap-2">
@@ -84,12 +89,12 @@ function UploadCard({ title, accept, file, onFileSelect, icon }: UploadCardProps
           type="button"
           onClick={() => inputRef.current?.click()}
           className="w-full max-w-[200px] py-2.5 rounded-md bg-brand-600 text-white text-sm font-medium
-            border border-black shadow-[0_2px_6px_rgba(111,134,166,0.45)] hover:bg-brand-700 transition-colors"
+            border border-black shadow-[0_2px_6px_rgba(40,55,80,0.35)] hover:bg-brand-700 transition-colors"
         >
           {title}
         </button>
         {file && (
-          <p className="text-xs text-slate-500 truncate max-w-full px-2" title={file.name}>
+          <p className="text-xs text-slate-700 font-medium truncate max-w-full bg-white/70 rounded px-2 py-0.5" title={file.name}>
             {file.name}
           </p>
         )}
@@ -127,29 +132,33 @@ export default function UploadPanel({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row gap-8 md:gap-10">
-        <UploadCard
-          title="Upload record"
-          accept=".mp3,.m4a,.wav,.mp4,.webm,audio/*"
-          file={audioFile}
-          onFileSelect={onAudioSelect}
-          icon={<MicIcon className="w-full h-full" />}
-        />
-        <UploadCard
-          title="Upload lecture"
-          accept=".pdf,application/pdf"
-          file={pdfFile}
-          onFileSelect={onPdfSelect}
-          icon={<LectureIcon className="w-full h-full" />}
-        />
+      <div className="rounded-[32px] bg-[#6F86A6]/25 border border-black/10 p-5 md:p-7 shadow-inner">
+        <div className="flex flex-col md:flex-row gap-5 md:gap-6">
+          <UploadCard
+            title="Upload record"
+            accept=".mp3,.m4a,.wav,.mp4,.webm,audio/*"
+            file={audioFile}
+            onFileSelect={onAudioSelect}
+            icon={<MicIcon className="w-full h-full" />}
+            tone="record"
+          />
+          <UploadCard
+            title="Upload lecture"
+            accept=".pdf,application/pdf"
+            file={pdfFile}
+            onFileSelect={onPdfSelect}
+            icon={<LectureIcon className="w-full h-full" />}
+            tone="lecture"
+          />
+        </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4 rounded-2xl bg-white/80 border border-black/10 px-4 py-3">
         <button
           type="button"
           onClick={onToggleOptions}
           className="inline-flex items-center gap-3 self-start px-5 py-2.5 rounded-md bg-brand-600 text-white text-sm font-medium
-            border border-black shadow-[0_2px_6px_rgba(111,134,166,0.45)] hover:bg-brand-700 transition-colors"
+            border border-black shadow-[0_2px_6px_rgba(40,55,80,0.35)] hover:bg-brand-700 transition-colors"
           aria-expanded={optionsOpen}
         >
           customizing
@@ -171,7 +180,7 @@ export default function UploadPanel({
           className={`px-10 py-2.5 rounded-md text-sm font-semibold border border-black transition-all
             ${
               canSubmit
-                ? "bg-brand-600 text-white shadow-[0_2px_6px_rgba(111,134,166,0.45)] hover:bg-brand-700"
+                ? "bg-brand-600 text-white shadow-[0_2px_6px_rgba(40,55,80,0.35)] hover:bg-brand-700"
                 : "bg-slate-200 text-slate-400 cursor-not-allowed"
             }`}
         >
@@ -182,7 +191,7 @@ export default function UploadPanel({
       {optionsOpen && children}
 
       {error && (
-        <p className="text-center text-red-600 text-sm bg-red-50 py-2 px-4 rounded-lg">
+        <p className="text-center text-red-600 text-sm bg-red-50 py-2 px-4 rounded-lg border border-red-200">
           {error}
         </p>
       )}

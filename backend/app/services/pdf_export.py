@@ -193,3 +193,239 @@ def summaries_from_result(
             if summary:
                 result[int(page["page"])] = summary
     return result
+
+
+def _strip_md(text: str) -> str:
+    return text.replace("**", "").strip()
+
+
+def build_full_lecture_pdf(
+    document: dict[str, Any],
+    output_path: str,
+    *,
+    note_bg: tuple[float, float, float] | None = None,
+    note_text: tuple[float, float, float] | None = None,
+) -> tuple[str, list[str]]:
+    """전체 정리본(lecture_document)을 A4 PDF로 렌더링한다."""
+    warnings: list[str] = []
+    font = _load_cjk_font()
+
+    page_w, page_h = fitz.paper_size("a4")  # 595 x 842
+    margin = 48.0
+    content_w = page_w - 2 * margin
+    bg = note_bg or (1.0, 1.0, 1.0)
+    body_color = note_text or NOTE_TEXT_COLOR
+    title_color = note_text or NOTE_TITLE_COLOR
+    muted = (0.45, 0.48, 0.55)
+    accent = (0.12, 0.45, 0.35)
+
+    out = fitz.open()
+    try:
+        page = out.new_page(width=page_w, height=page_h)
+        page.draw_rect(page.rect, fill=bg, color=None)
+
+        y = margin
+        writers: list[tuple[fitz.TextWriter, tuple[float, float, float]]] = []
+
+        def new_page() -> None:
+            nonlocal page, y, writers
+            for tw, color in writers:
+                tw.write_text(page, color=color)
+            writers = []
+            page = out.new_page(width=page_w, height=page_h)
+            page.draw_rect(page.rect, fill=bg, color=None)
+            y = margin
+
+        def ensure_space(needed: float) -> None:
+            nonlocal y
+            if y + needed > page_h - margin:
+                new_page()
+
+        def write_lines(
+            lines: list[str],
+            *,
+            fontsize: float,
+            color: tuple[float, float, float],
+            line_h: float | None = None,
+            gap_after: float = 4.0,
+        ) -> None:
+            nonlocal y
+            lh = line_h or fontsize * 1.45
+            tw = fitz.TextWriter(page.rect)
+            for line in lines:
+                ensure_space(lh)
+                tw.append(fitz.Point(margin, y + fontsize * 0.85), line, font=font, fontsize=fontsize)
+                y += lh
+            writers.append((tw, color))
+            y += gap_after
+
+        def section(title: str) -> None:
+            nonlocal y
+            ensure_space(36)
+            y += 8
+            write_lines([title], fontsize=13, color=title_color, gap_after=8)
+            # 구분선
+            ensure_space(4)
+            page.draw_line(
+                fitz.Point(margin, y),
+                fitz.Point(page_w - margin, y),
+                color=(0.85, 0.87, 0.9),
+                width=0.8,
+            )
+            y += 10
+
+        def bullets(items: list[str], *, prefix: str = "• ") -> None:
+            for raw in items:
+                text = _strip_md(str(raw))
+                if not text:
+                    continue
+                wrapped = _wrap_text(prefix + text, font, 10.5, content_w, indent="  ")
+                write_lines(wrapped, fontsize=10.5, color=body_color, gap_after=3)
+
+        # --- 헤더 ---
+        title = _strip_md(str(document.get("title") or "강의 정리본"))
+        subtitle = _strip_md(str(document.get("subtitle") or ""))
+        write_lines(
+            _wrap_text(title, font, 20, content_w),
+            fontsize=20,
+            color=title_color,
+            line_h=26,
+            gap_after=6,
+        )
+        if subtitle:
+            write_lines(
+                _wrap_text(subtitle, font, 10, content_w),
+                fontsize=10,
+                color=muted,
+                gap_after=14,
+            )
+
+        # --- 핵심 요약 ---
+        key_summary = document.get("key_summary") or []
+        if key_summary:
+            section("핵심 요약")
+            bullets(key_summary)
+
+        # --- 개념 구조 ---
+        def render_concept(node: dict[str, Any], depth: int = 0) -> None:
+            heading = _strip_md(str(node.get("heading") or ""))
+            indent = "  " * depth
+            if heading:
+                write_lines(
+                    _wrap_text(f"{indent}{heading}", font, 11.5 if depth == 0 else 10.5, content_w),
+                    fontsize=11.5 if depth == 0 else 10.5,
+                    color=title_color if depth == 0 else body_color,
+                    gap_after=3,
+                )
+            for item in node.get("items") or []:
+                text = _strip_md(str(item))
+                if not text:
+                    continue
+                wrapped = _wrap_text(f"{indent}▪ {text}", font, 10, content_w - depth * 8, indent=indent + "  ")
+                write_lines(wrapped, fontsize=10, color=body_color, gap_after=2)
+            callout = _strip_md(str(node.get("callout_question") or ""))
+            if callout:
+                wrapped = _wrap_text(f"{indent}※ {callout}", font, 10, content_w - depth * 8, indent=indent + "  ")
+                write_lines(wrapped, fontsize=10, color=accent, gap_after=4)
+            for child in node.get("children") or []:
+                if isinstance(child, dict):
+                    render_concept(child, depth + 1)
+
+        concepts = document.get("concept_structure") or []
+        if concepts:
+            section("개념 구조")
+            for node in concepts:
+                if isinstance(node, dict):
+                    render_concept(node)
+
+        # --- 비교 표 ---
+        comparisons = document.get("comparisons") or []
+        if comparisons:
+            section("비교 · 정리 표")
+            for table in comparisons:
+                if not isinstance(table, dict):
+                    continue
+                t_title = _strip_md(str(table.get("title") or "표"))
+                slide_ref = table.get("slide_ref")
+                if slide_ref:
+                    t_title = f"{t_title}  (슬라이드 {slide_ref})"
+                write_lines(
+                    _wrap_text(t_title, font, 11, content_w),
+                    fontsize=11,
+                    color=title_color,
+                    gap_after=4,
+                )
+                columns = [str(c) for c in (table.get("columns") or [])]
+                rows = table.get("rows") or []
+                if columns:
+                    header = " | ".join(_strip_md(c) for c in columns)
+                    write_lines(
+                        _wrap_text(header, font, 9.5, content_w),
+                        fontsize=9.5,
+                        color=muted,
+                        gap_after=2,
+                    )
+                for row in rows:
+                    cells = row if isinstance(row, list) else [row]
+                    line = " | ".join(_strip_md(str(c)) for c in cells)
+                    write_lines(
+                        _wrap_text(line, font, 9.5, content_w),
+                        fontsize=9.5,
+                        color=body_color,
+                        gap_after=2,
+                    )
+                y += 6
+
+        # --- 교수 강조 ---
+        highlights = document.get("professor_highlights") or []
+        if highlights:
+            section("교수님이 강조한 포인트")
+            for h in highlights:
+                if not isinstance(h, dict):
+                    continue
+                quote = _strip_md(str(h.get("quote") or ""))
+                expl = _strip_md(str(h.get("explanation") or ""))
+                slide_ref = h.get("slide_ref")
+                if quote:
+                    label = f"“{quote}”"
+                    if slide_ref:
+                        label += f"  (슬라이드 {slide_ref})"
+                    write_lines(
+                        _wrap_text(label, font, 10.5, content_w),
+                        fontsize=10.5,
+                        color=title_color,
+                        gap_after=2,
+                    )
+                if expl:
+                    write_lines(
+                        _wrap_text(f"→ {expl}", font, 10, content_w),
+                        fontsize=10,
+                        color=body_color,
+                        gap_after=6,
+                    )
+
+        # --- 시험 ---
+        exams = document.get("exam_questions") or []
+        if exams:
+            section("시험에서 이렇게 나온다")
+            bullets(exams, prefix="□ ")
+
+        # --- 헷갈리는 포인트 ---
+        confusing = document.get("confusing_points") or []
+        if confusing:
+            section("헷갈리기 쉬운 포인트")
+            bullets(confusing)
+
+        for tw, color in writers:
+            tw.write_text(page, color=color)
+
+        if len(out) == 0:
+            warnings.append("전체 정리본 내용이 비어 있습니다.")
+
+        out_file = Path(output_path)
+        out_file.parent.mkdir(parents=True, exist_ok=True)
+        out.save(str(out_file), garbage=4, deflate=True)
+    finally:
+        out.close()
+
+    return str(output_path), warnings

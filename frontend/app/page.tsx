@@ -80,8 +80,8 @@ export default function HomePage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#f4f4f0]">
-      <header className="border-b border-black/10">
+    <main className="min-h-screen bg-[#e4eaf1]">
+      <header className="border-b border-black/10 bg-[#f7f8fa]/90 backdrop-blur-sm">
         <div className="max-w-5xl mx-auto px-6 py-5 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
           <Link href="/" className="font-display text-3xl tracking-tight text-slate-900 leading-none">
             <span className="font-bold">1</span>

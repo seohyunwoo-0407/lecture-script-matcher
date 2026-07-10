@@ -24,7 +24,12 @@ from app.services.full_lecture_note import (
     FULL_LECTURE_DOCUMENT_PROMPT,
     generate_full_lecture_document,
 )
-from app.services.pdf_export import build_annotated_pdf, hex_to_rgb, summaries_from_result
+from app.services.pdf_export import (
+    build_annotated_pdf,
+    build_full_lecture_pdf,
+    hex_to_rgb,
+    summaries_from_result,
+)
 from app.services.quiz import QUIZ_SYSTEM_PROMPT, generate_quiz
 from app.services.summarize import SUMMARY_SYSTEM_PROMPT, summarize_page
 from app.services.vision_caption import caption_pages, get_page_embedding_texts
@@ -564,43 +569,64 @@ def download_pdf(job_id: str, note_bg: str | None = None, note_text: str | None 
     result = _load_done_result(job_id)
 
     job_dir = get_job_dir(job_id)
-    pdf_files = list(job_dir.glob("lecture.*"))
-    if not pdf_files:
-        raise HTTPException(status_code=404, detail="원본 PDF를 찾을 수 없습니다.")
-
-    pdf_path = str(pdf_files[0])
-    out_path = job_dir / "lecture_with_notes.pdf"
     result_note_mode = result.get("note_mode", "summary")
-    page_summaries = summaries_from_result(result["pages"], note_mode=result_note_mode)
-
-    if not page_summaries:
-        raise HTTPException(
-            status_code=400,
-            detail="핵심 정리/퀴즈가 없습니다. 업로드 시 '핵심 요약' 옵션을 켜고 다시 처리해 주세요.",
-        )
+    out_path = job_dir / (
+        "full_lecture_note.pdf" if result_note_mode == "full_note" else "lecture_with_notes.pdf"
+    )
 
     try:
-        _, export_warnings = build_annotated_pdf(
-            pdf_path,
-            page_summaries,
-            str(out_path),
-            note_bg=hex_to_rgb(note_bg),
-            note_text=hex_to_rgb(note_text),
-        )
+        if result_note_mode == "full_note":
+            doc = result.get("lecture_document") or {}
+            if not doc.get("title"):
+                raise HTTPException(
+                    status_code=400,
+                    detail="전체 정리본이 없습니다. 업로드 시 '전체 정리본' 모드로 다시 처리해 주세요.",
+                )
+            _, export_warnings = build_full_lecture_pdf(
+                doc,
+                str(out_path),
+                note_bg=hex_to_rgb(note_bg),
+                note_text=hex_to_rgb(note_text),
+            )
+        else:
+            pdf_files = list(job_dir.glob("lecture.*"))
+            if not pdf_files:
+                raise HTTPException(status_code=404, detail="원본 PDF를 찾을 수 없습니다.")
+            page_summaries = summaries_from_result(result["pages"], note_mode=result_note_mode)
+            if not page_summaries:
+                raise HTTPException(
+                    status_code=400,
+                    detail="핵심 정리/퀴즈가 없습니다. 업로드 시 '핵심 요약' 옵션을 켜고 다시 처리해 주세요.",
+                )
+            _, export_warnings = build_annotated_pdf(
+                str(pdf_files[0]),
+                page_summaries,
+                str(out_path),
+                note_bg=hex_to_rgb(note_bg),
+                note_text=hex_to_rgb(note_text),
+            )
+
         record = job_store.get(job_id)
         if record:
             for w in export_warnings:
                 record.warnings.append(w)
+    except HTTPException:
+        raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"PDF 생성 실패: {exc}") from exc
 
     if not out_path.exists():
         raise HTTPException(status_code=500, detail="PDF 파일 생성에 실패했습니다.")
 
+    filename = (
+        f"full_lecture_note_{job_id[:8]}.pdf"
+        if result_note_mode == "full_note"
+        else f"lecture_notes_{job_id[:8]}.pdf"
+    )
     return FileResponse(
         str(out_path),
         media_type="application/pdf",
-        filename=f"lecture_notes_{job_id[:8]}.pdf",
+        filename=filename,
     )
 
 
