@@ -1,5 +1,7 @@
 "use client";
 
+import { AccentButton } from "@/components/UploadPanel";
+
 export type JobPhase = "queued" | "transcribe" | "matching" | "polish" | "done";
 
 interface ProgressBarProps {
@@ -7,66 +9,8 @@ interface ProgressBarProps {
   transcribeProgress: number;
   matchingProgress: number;
   phase?: JobPhase;
-}
-
-function PhaseBar({
-  label,
-  icon,
-  progress,
-  active,
-  done,
-}: {
-  label: string;
-  icon: string;
-  progress: number;
-  active: boolean;
-  done: boolean;
-}) {
-  const clamped = Math.min(100, Math.max(0, progress));
-
-  return (
-    <div
-      className={`rounded-xl border p-4 transition-all ${
-        active
-          ? "border-brand-300 bg-brand-50/60 shadow-sm"
-          : done
-            ? "border-emerald-200 bg-emerald-50/40"
-            : "border-slate-200 bg-white"
-      }`}
-    >
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <span className="text-lg">{icon}</span>
-          <span
-            className={`text-sm font-medium ${
-              active ? "text-brand-700" : done ? "text-emerald-700" : "text-slate-500"
-            }`}
-          >
-            {label}
-          </span>
-          {done && (
-            <span className="text-xs text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded">
-              완료
-            </span>
-          )}
-          {active && (
-            <span className="text-xs text-brand-600 bg-brand-100 px-1.5 py-0.5 rounded animate-pulse">
-              진행 중
-            </span>
-          )}
-        </div>
-        <span className="text-sm tabular-nums text-slate-500">{clamped}%</span>
-      </div>
-      <div className="h-2.5 bg-slate-200 rounded-full overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-all duration-500 ease-out ${
-            done ? "bg-emerald-500" : active ? "bg-brand-600" : "bg-slate-300"
-          }`}
-          style={{ width: `${clamped}%` }}
-        />
-      </div>
-    </div>
-  );
+  onView?: () => void;
+  canView?: boolean;
 }
 
 export default function ProgressBar({
@@ -74,31 +18,47 @@ export default function ProgressBar({
   transcribeProgress,
   matchingProgress,
   phase = "queued",
+  onView,
+  canView = false,
 }: ProgressBarProps) {
-  const transcribeDone = transcribeProgress >= 100;
-  const matchingDone = matchingProgress >= 100;
-  const transcribeActive = phase === "transcribe";
-  const matchingActive = phase === "matching" || phase === "polish";
+  // 전체 진행률: 전사 55% + 매칭/폴리시 45%
+  let overall = 0;
+  if (phase === "queued") overall = 2;
+  else if (phase === "transcribe") overall = Math.min(55, transcribeProgress * 0.55);
+  else if (phase === "matching") overall = 55 + matchingProgress * 0.35;
+  else if (phase === "polish") overall = 90 + matchingProgress * 0.08;
+  else overall = 100;
+
+  const pct = Math.round(Math.min(100, Math.max(0, overall)));
 
   return (
-    <div className="w-full max-w-lg mx-auto space-y-4">
-      <p className="text-center text-sm text-slate-600">{message}</p>
+    <div className="w-full max-w-[520px] mx-auto mt-10 flex flex-col items-center gap-8">
+      <div
+        className="w-full h-9 rounded-md bg-[#6b8e6b] relative overflow-hidden
+          shadow-[inset_0_3px_8px_rgba(0,0,0,0.35),inset_0_-1px_2px_rgba(255,255,255,0.15)]
+          border border-black/20"
+      >
+        <div
+          className="absolute inset-y-0 left-0 bg-[#5a7a5a] transition-all duration-500"
+          style={{ width: `${pct}%`, opacity: 0.35 }}
+        />
+        <p className="absolute inset-0 flex items-center justify-center text-sm font-medium text-black/80 tabular-nums">
+          {pct}%
+        </p>
+      </div>
+      {message && (
+        <p className="text-xs text-slate-500 -mt-6">{message}</p>
+      )}
 
-      <PhaseBar
-        label="음성 → 텍스트 변환"
-        icon="🎙️"
-        progress={transcribeProgress}
-        active={transcribeActive}
-        done={transcribeDone}
-      />
-
-      <PhaseBar
-        label="텍스트 → 슬라이드 매칭"
-        icon="📄"
-        progress={matchingProgress}
-        active={matchingActive}
-        done={matchingDone}
-      />
+      {onView && (
+        <AccentButton
+          className="px-10 py-2.5 min-w-[100px]"
+          onClick={onView}
+          disabled={!canView}
+        >
+          view
+        </AccentButton>
+      )}
     </div>
   );
 }
